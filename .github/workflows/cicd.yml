@@ -1,0 +1,39 @@
+name: Complete CI/CD Pipeline
+
+on: [push]
+
+jobs:
+  # --- CONTINUOUS INTEGRATION (CI) ---
+  test-code:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get the code
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Run automated tests
+        run: |
+          pip install pytest
+          pytest test_app.py
+
+  # --- CONTINUOUS DEPLOYMENT (CD) ---
+  deploy-to-server:
+    # CD runs only if CI passes.
+    needs: test-code
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            rm -rf full-cicd-demo
+            git clone https://github.com/ZOTOX001/CICD-demo.git full-cicd-demo
+            cd full-cicd-demo
+            python3 app.py
